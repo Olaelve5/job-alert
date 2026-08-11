@@ -14,7 +14,7 @@ class FinnScraper(ScraperBase):
         "&occupation=0.23"
         "&sort=PUBLISHED_DESC"
     )
-    max_pages = 1
+    max_pages = 10
 
     skip_words = [
         "senior",
