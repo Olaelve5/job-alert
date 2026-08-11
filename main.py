@@ -112,10 +112,10 @@ peter_finn_junior = FinnScraper(
 
 def main():
     ola_finn_junior.run()
-    ola_finn_junior.send_digest()
+    peter_finn_junior.run()
 
-    # peter_finn_junior.run()
-    # peter_finn_junior.send_digest()
+    ola_finn_junior.send_digest()
+    peter_finn_junior.send_digest()
 
 
 main()
