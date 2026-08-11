@@ -7,13 +7,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-init_db(db_path="ola_jobs.db")
-init_db(db_path="peter_jobs.db")
+init_db(db_path="db/ola_jobs.db")
+init_db(db_path="db/peter_jobs.db")
 
 # Configure the scraper and digest mechanism - OLA
 ola_discord_digest = DiscordDigest(
     webhook_url=os.getenv("OLA_DISCORD_WEBHOOK_URL"),
-    db_path="ola_jobs.db",
+    db_path="db/ola_jobs.db",
     min_score=5,
     max_jobs=10,
 )
@@ -43,13 +43,13 @@ ola_prompt_template = """
     {job_text}
 """
 
-ola_finn_junior = FinnScraper(db_path="ola_jobs.db", digest=ola_discord_digest)
+ola_finn_junior = FinnScraper(db_path="db/ola_jobs.db", digest=ola_discord_digest)
 
 
 # Configure the scraper and digest mechanism - PETER
 peter_discord_digest = DiscordDigest(
     webhook_url=os.getenv("PETER_DISCORD_WEBHOOK_URL"),
-    db_path="peter_jobs.db",
+    db_path="db/peter_jobs.db",
     min_score=5,
     max_jobs=10,
 )
@@ -102,7 +102,7 @@ peter_prompt_template = """
 """
 
 peter_finn_junior = FinnScraper(
-    db_path="peter_jobs.db",
+    db_path="db/peter_jobs.db",
     start_url=peter_start_url,
     digest=peter_discord_digest,
     skip_words=peter_skip_words,

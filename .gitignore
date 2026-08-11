@@ -1,8 +1,4 @@
 .env
-# Database files
-*.db
-*.sqlite
-*.sqlite3
 
 # Virtual environments
 .venv/
