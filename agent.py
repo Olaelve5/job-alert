@@ -35,9 +35,14 @@ class JobAnalysis(BaseModel):
     )
 
 
-def init_db(db_path: str = "jobs.db"):
+def init_db(db_path: str = "db/ola_jobs.db"):
+    dir_name = os.path.dirname(db_path)
+    if dir_name:
+        os.makedirs(dir_name, exist_ok=True)
+
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS jobs (
             job_id TEXT PRIMARY KEY,
