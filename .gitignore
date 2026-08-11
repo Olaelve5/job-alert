@@ -1,0 +1,49 @@
+.env
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Installer / packaging
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Type checkers
+.mypy_cache/
+
+# Editor directories and files
+.vscode/
+.idea/
+*.sublime-workspace
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Temp
+.cache/
+tmp/
+
+# Secrets and credentials (already have .env but keep common names)
+credentials.json
+secrets.env
