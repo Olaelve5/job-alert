@@ -31,8 +31,8 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      # Runs the main scraper at 08:00 CEST, on pushes, or manual triggers
-      - name: Run Job Scraper
+      # Runs job scanning and sends digests at 08:00 CEST, on push, or manual triggers
+      - name: Run Job Scraper & Send Digests
         if: github.event.schedule == '0 6 * * *' || github.event_name != 'schedule'
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
@@ -41,9 +41,9 @@ jobs:
           OLA_DISCORD_WEBHOOK_URL: ${{ secrets.OLA_DISCORD_WEBHOOK_URL }}
           PETER_DISCORD_WEBHOOK_URL: ${{ secrets.PETER_DISCORD_WEBHOOK_URL }}
         run: |
-          python main.py
+          python -c "import main; main.scan_for_jobs(); main.send_digests()"
 
-      # Runs deadline alerts at 12:00 CEST, or on manual triggers
+      # Runs deadline alerts at 12:00 CEST, on push, or manual triggers
       - name: Send Approaching Deadlines
         if: github.event.schedule == '0 10 * * *' || github.event_name != 'schedule'
         env:
@@ -53,7 +53,7 @@ jobs:
           OLA_DISCORD_WEBHOOK_URL: ${{ secrets.OLA_DISCORD_WEBHOOK_URL }}
           PETER_DISCORD_WEBHOOK_URL: ${{ secrets.PETER_DISCORD_WEBHOOK_URL }}
         run: |
-          python -c "import main; main.send_deadlines()"
+          python -c "import main; main.send_deadline_alerts()"
 
       # Commit and push any modified files (databases, logs, state, etc.)
       - name: Commit updated databases and files
