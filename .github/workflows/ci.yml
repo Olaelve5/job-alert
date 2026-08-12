@@ -1,14 +1,15 @@
-name: Daily Job Scraper
+name: Daily Job Scraper & Deadlines
 
 on:
   schedule:
-    # 06:00 UTC = 08:00 Norwegian Summer Time (CEST)
+    # 06:00 UTC = 08:00 Norwegian Summer Time (CEST) - Main Scraper
     - cron: "0 6 * * *"
+    # 10:00 UTC = 12:00 Norwegian Summer Time (CEST) - Send Deadlines
+    - cron: "0 10 * * *"
   push:
     branches: [main, master]
   workflow_dispatch:
 
-# 1. Grant write permission so GitHub Actions can commit back to the repo
 permissions:
   contents: write
 
@@ -30,7 +31,9 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Run main.py
+      # Runs the main scraper at 08:00 CEST, on pushes, or manual triggers
+      - name: Run Job Scraper
+        if: github.event.schedule == '0 6 * * *' || github.event_name != 'schedule'
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
@@ -40,8 +43,21 @@ jobs:
         run: |
           python main.py
 
+      # Runs deadline alerts at 12:00 CEST, or on manual triggers
+      - name: Send Approaching Deadlines
+        if: github.event.schedule == '0 10 * * *' || github.event_name != 'schedule'
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          DISCORD_CHANNEL_ID: ${{ secrets.DISCORD_CHANNEL_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OLA_DISCORD_WEBHOOK_URL: ${{ secrets.OLA_DISCORD_WEBHOOK_URL }}
+          PETER_DISCORD_WEBHOOK_URL: ${{ secrets.PETER_DISCORD_WEBHOOK_URL }}
+        run: |
+          python -c "import main; main.send_deadlines()"
+
       # Commit and push any modified files (databases, logs, state, etc.)
       - name: Commit updated databases and files
+        if: always()
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"

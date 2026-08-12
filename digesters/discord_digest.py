@@ -113,3 +113,47 @@ class DiscordDigest(BaseDigest):
         sent_ids = [job["job_id"] for job in jobs]
         self.mark_as_notified(sent_ids)
         print("Done! All jobs sent and updated in database.")
+
+    def send_deadlines(self, db_path: str, days: int = 3) -> None:
+        from utils.find_deadline_jobs import find_deadline_jobs
+
+        jobs = find_deadline_jobs(db_path=db_path, days=days)
+
+        if not jobs:
+            print(f"[{self.__class__.__name__}] No jobs with deadlines in the next {days} days.")
+            return
+
+        print(f"[{self.__class__.__name__}] Sending {len(jobs)} job deadline alerts to Discord...")
+
+        embeds = []
+        for job in jobs:
+            # Green border for score >= 8, Orange for 6-7
+            color = 3066993 if job.get("score", 0) >= 8 else 15105570
+
+            embeds.append(
+                {
+                    "title": f"⏰ Deadline Alert: {job['title']} @ {job['company']}",
+                    "url": job["url"],
+                    "color": color,
+                    "fields": [
+                        {"name": "Frist", "value": job["deadline"], "inline": False},
+                        {"name": "Job ID", "value": job["job_id"], "inline": False},
+                        {"name": "Company", "value": job["company"], "inline": False},
+                        {"name": "Title", "value": job["title"], "inline": False},
+                    ],
+                }
+            )
+
+        # Discord accepts up to 10 embeds per POST request
+        for chunk in [embeds[i : i + 10] for i in range(0, len(embeds), 10)]:
+            payload = {
+                "content": f"⚠️ Job Deadlines in the next {days} days ({len(jobs)} found):",
+                "embeds": chunk,
+            }
+            res = requests.post(self.webhook_url, json=payload)
+
+            if res.status_code not in [200, 204]:
+                print(f"Failed to post to Discord: {res.status_code} - {res.text}")
+                return
+
+        print("Done! All deadline jobs sent to Discord.")
