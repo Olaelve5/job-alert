@@ -58,4 +58,6 @@ class FinnScraper(ScraperBase):
         section = soup.find("section", {"class": "import-decoration"}) or soup.find(
             "main"
         )
-        return section.get_text(separator="\n", strip=True) if section else ""
+        text = section.get_text(separator="\n", strip=True) if section else ""
+        print(text)
+        return text

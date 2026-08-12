@@ -2,7 +2,7 @@ import os
 import json
 import sqlite3
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from google import genai
 from google.genai import types
 from google.genai.errors import ClientError
@@ -29,10 +29,27 @@ class JobAnalysis(BaseModel):
         description="Teknologier og rammeverk nevnt i utlysningen"
     )
     summary: str = Field(description="Kort sammendrag på 2-3 setninger om rollen")
+
+    location: Optional[str] = Field(
+        default=None,
+        description="Sted eller by der stillingen er lokalisert. Hvis ikke oppgitt, returner 'Not specified'.",
+    )
+
     deadline: Optional[str] = Field(
         default=None,
-        description="Søknadsfrist konvertert til formatet YYYY-MM-DD. Hvis fristen er 'Snarest', 'Løpende' eller ikke oppgitt, returner null.",
+        description="Søknadsfrist (YYYY-MM-DD). Se etter nøkkelord som 'Søknadsfrist' eller 'Frist'. Returner null for 'Snarest'/'Løpende'.",
     )
+    start_date: Optional[str] = Field(
+        default=None,
+        description="Dato for tiltredelse/oppstart (YYYY-MM-DD). Se etter nøkkelord som 'Tiltredelse' eller 'Oppstart'. Returner null hvis det står 'Etter avtale', 'Snarest', eller ingen eksplisitt oppstartsdato er oppgitt.",
+    )
+
+    @model_validator(mode="after")
+    def validate_dates(self):
+        # Fail-safe: Start date should never equal deadline date
+        if self.start_date and self.start_date == self.deadline:
+            self.start_date = None
+        return self
 
 
 def init_db(db_path: str = "db/ola_jobs.db"):
@@ -50,12 +67,14 @@ def init_db(db_path: str = "db/ola_jobs.db"):
             company TEXT,
             score INTEGER,
             is_junior INTEGER DEFAULT 0,
+            deadline DATE DEFAULT NULL,
+            start_date DATE DEFAULT NULL,
+            location TEXT DEFAULT NULL,
             summary TEXT,
             tech_stack TEXT,
             url TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            is_notified INTEGER DEFAULT 0,
-            deadline DATE DEFAULT NULL
+            is_notified INTEGER DEFAULT 0
         )
     """)
     conn.commit()
@@ -84,12 +103,14 @@ def save_job(
     tech_stack: List[str],
     summary: str,
     deadline: str = None,
+    start_date: str = None,
+    location: str = None,
     db_path: str = "jobs.db",
 ):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO jobs (job_id, title, company, is_junior, url, score, tech_stack, summary, deadline) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO jobs (job_id, title, company, is_junior, url, score, tech_stack, summary, deadline, start_date, location) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         (
             job_id,
             title,
@@ -100,6 +121,8 @@ def save_job(
             json.dumps(tech_stack, ensure_ascii=False),
             summary,
             deadline,
+            start_date,
+            location,
         ),
     )
     conn.commit()
@@ -167,6 +190,7 @@ def process_job(
 
     analysis = analyze_job_posting(job_text, prompt_override=prompt_override)
 
+    print("\n===============================================================")
     print(f"Analysis for {job_id}:")
     print(f"  Is Junior/Graduate: {analysis.is_junior_or_graduate}")
     print(f"  Relevance Score: {analysis.relevance_score}")
@@ -175,6 +199,9 @@ def process_job(
     print(f"  Tech Stack: {', '.join(analysis.tech_stack)}")
     print(f"  Summary: {analysis.summary}")
     print(f"  Deadline: {analysis.deadline}")
+    print(f"  Start Date: {analysis.start_date}")
+    print(f"  Location: {analysis.location}")
+    print("===============================================================\n")
 
     save_job(
         job_id,
@@ -186,5 +213,7 @@ def process_job(
         analysis.tech_stack,
         analysis.summary,
         db_path=db_path,
+        start_date=analysis.start_date,
         deadline=analysis.deadline,
+        location=analysis.location,
     )

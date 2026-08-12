@@ -50,13 +50,22 @@ class DiscordDigest(BaseDigest):
 
             # Green border for score >= 8, Orange for 6-7
             color = 3066993 if job["score"] >= 8 else 15105570
-            # handle sqlite3.Row which doesn't implement .get()
-            if hasattr(job, "keys") and "deadline" in job.keys():
-                deadline = job["deadline"] or "Snarest"
-            else:
-                deadline = "Snarest"
 
-            tech_stack_val = job["tech_stack"] if job["tech_stack"] else "Not specified"
+            # helper to read field from sqlite3.Row or dict-like
+            def _read_field(j, field, fallback=None):
+                if hasattr(j, "get"):
+                    val = j.get(field)
+                    return val if val else fallback
+                if hasattr(j, "keys") and field in j.keys():
+                    val = j[field]
+                    return val if val else fallback
+                return fallback
+
+            deadline = _read_field(job, "deadline", "Snarest")
+            start_date_val = _read_field(job, "start_date", "Not specified")
+            location_val = _read_field(job, "location", "Not specified")
+
+            tech_stack_val = _read_field(job, "tech_stack", "Not specified")
 
             embeds.append(
                 {
@@ -66,6 +75,11 @@ class DiscordDigest(BaseDigest):
                     "fields": [
                         {"name": "⏰ Frist", "value": deadline, "inline": False},
                         {
+                            "name": "🚀 Oppstart",
+                            "value": start_date_val,
+                            "inline": False,
+                        },
+                        {
                             "name": "💻 Tech Stack",
                             "value": tech_stack_val,
                             "inline": False,
@@ -73,6 +87,11 @@ class DiscordDigest(BaseDigest):
                         {
                             "name": "📝 Summary",
                             "value": job["summary"],
+                            "inline": False,
+                        },
+                        {
+                            "name": "📍 Location",
+                            "value": location_val,
                             "inline": False,
                         },
                     ],
